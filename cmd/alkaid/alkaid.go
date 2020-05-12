@@ -18,7 +18,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yakumioto/glog"
 
-	"github.com/yakumioto/alkaid/internal/api/handler"
+	v1 "github.com/yakumioto/alkaid/internal/api/v1"
+	"github.com/yakumioto/alkaid/internal/api/v1/network"
+	"github.com/yakumioto/alkaid/internal/api/v1/organization"
+	"github.com/yakumioto/alkaid/internal/api/v1/user"
 	"github.com/yakumioto/alkaid/internal/config"
 	"github.com/yakumioto/alkaid/internal/db"
 	"github.com/yakumioto/alkaid/internal/scheduler"
@@ -39,8 +42,6 @@ func run(_ *cobra.Command, _ []string) {
 	gin.SetMode(gin.ReleaseMode)
 
 	switch config.LogLevel {
-	case "INFO":
-		glog.SetLevel(glog.LevelInfo)
 	case "WARN":
 		glog.SetLevel(glog.LevelWarning)
 	case "ERRO":
@@ -57,11 +58,12 @@ func run(_ *cobra.Command, _ []string) {
 	}
 
 	r := gin.Default()
+	v1.Init(r,
+		new(network.Service),
+		new(organization.Service),
+		new(user.Service),
+	)
 
-	handler.Init(r,
-		new(handler.Network),
-		new(handler.Organization),
-		new(handler.User))
 	scheduler.Init()
 
 	if err := db.Init(config.DBPath, "cache=shared&mode=rwc"); err != nil {
