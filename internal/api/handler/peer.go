@@ -53,7 +53,7 @@ func CreatePeerNode(ctx *gin.Context) {
 			return
 		}
 
-		returnInternalServerError(ctx, "Query MSP by organization_id and user_id error: %v", err)
+		returnInternalServerError(ctx, "Query User by organization_id and user_id error: %v", err)
 		return
 	}
 

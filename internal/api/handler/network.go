@@ -21,7 +21,25 @@ import (
 	"github.com/yakumioto/alkaid/internal/scheduler"
 )
 
-func CreateNetwork(ctx *gin.Context) {
+const (
+	networkID     = "network_id"
+	networkDetail = "/:" + networkID
+)
+
+type Network struct{}
+
+func (n *Network) Init(e *gin.Engine) {
+	r := e.Group("/network")
+	r.POST("", n.CreateNetwork)
+	r.GET("")
+	r.GET(networkDetail, n.GetNetworkByID)
+	r.PATCH(networkDetail)
+	r.DELETE(networkDetail)
+
+	logger.Infof("Network handles initialization success.")
+}
+
+func (n *Network) CreateNetwork(ctx *gin.Context) {
 	network := types.NewNetwork()
 	if err := ctx.ShouldBindJSON(network); err != nil {
 		logger.Debuf("Bind JSON error: %v", err)
@@ -54,7 +72,7 @@ func CreateNetwork(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, network)
 }
 
-func GetNetworkByID(ctx *gin.Context) {
+func (n *Network) GetNetworkByID(ctx *gin.Context) {
 	id := ctx.Param("networkID")
 
 	network, err := db.QueryNetworkByNetworkID(id)

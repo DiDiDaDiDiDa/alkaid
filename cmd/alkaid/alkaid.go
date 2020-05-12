@@ -19,7 +19,6 @@ import (
 	"github.com/yakumioto/glog"
 
 	"github.com/yakumioto/alkaid/internal/api/handler"
-	"github.com/yakumioto/alkaid/internal/api/routers"
 	"github.com/yakumioto/alkaid/internal/config"
 	"github.com/yakumioto/alkaid/internal/db"
 	"github.com/yakumioto/alkaid/internal/scheduler"
@@ -59,8 +58,10 @@ func run(_ *cobra.Command, _ []string) {
 
 	r := gin.Default()
 
-	routers.Init(r)
-	handler.Init()
+	handler.Init(r,
+		new(handler.Network),
+		new(handler.Organization),
+		new(handler.User))
 	scheduler.Init()
 
 	if err := db.Init(config.DBPath, "cache=shared&mode=rwc"); err != nil {

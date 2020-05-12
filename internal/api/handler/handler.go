@@ -20,8 +20,16 @@ var (
 	logger *glog.Logger
 )
 
-func Init() {
+type Handler interface {
+	Init(*gin.Engine)
+}
+
+func Init(e *gin.Engine, hs ...Handler) {
 	logger = glog.MustGetLogger("handler")
+
+	for _, h := range hs {
+		h.Init(e)
+	}
 }
 
 func returnInternalServerError(ctx *gin.Context, format string, v ...interface{}) {

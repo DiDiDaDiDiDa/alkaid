@@ -96,7 +96,7 @@ func CreateMSP(msp *MSP) error {
 	return nil
 }
 
-func QueryMSPByOrganizationIDAndUserID(orgID, userID string) (*types.MSP, error) {
+func QueryMSPByOrganizationIDAndUserID(orgID, userID string) (*types.User, error) {
 	msp := &MSP{
 		OrganizationID: orgID,
 		UserID:         userID,
@@ -114,5 +114,5 @@ func QueryMSPByOrganizationIDAndUserID(orgID, userID string) (*types.MSP, error)
 		}}
 	}
 
-	return (*types.MSP)(msp), nil
+	return (*types.User)(msp), nil
 }

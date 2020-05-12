@@ -10,30 +10,60 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 
 	apierrors "github.com/yakumioto/alkaid/internal/api/errors"
 	"github.com/yakumioto/alkaid/internal/api/types"
 	"github.com/yakumioto/alkaid/internal/db"
+	"github.com/yakumioto/alkaid/internal/utils/certificate"
 )
 
-func CreateOrganization(ctx *gin.Context) {
+const (
+	organizationID     = "orgnaization_id"
+	organizationDetail = "/:" + organizationID
+)
+
+type Organization struct{}
+
+func (o *Organization) Init(e *gin.Engine) {
+	r := e.Group("/organization")
+	r.POST("", o.CreateOrganization)
+	r.GET("")
+	r.GET(organizationDetail, o.GetOrganizationByID)
+	r.PATCH(organizationDetail)
+	r.DELETE(organizationDetail)
+
+	logger.Infof("Organization handles initialization success.")
+}
+
+func (o *Organization) CreateOrganization(ctx *gin.Context) {
 	org := types.NewOrganization()
-	if err := ctx.ShouldBindJSON(org); err != nil {
+
+	err := ctx.ShouldBindJSON(org)
+	if err != nil {
 		logger.Debuf("Bind JSON error: %v", err)
 		ctx.JSON(http.StatusBadRequest, apierrors.NewErrors(apierrors.BadRequestData))
 		return
 	}
 
-	signca, err := types.NewCA(org, types.SignCAType)
+	pkixName := &certificate.PkixName{
+		OrgName:       org.OrganizationID,
+		Country:       org.Country,
+		Province:      org.Province,
+		Locality:      org.Locality,
+		OrgUnit:       org.OrganizationalUnit,
+		StreetAddress: org.StreetAddress,
+		PostalCode:    org.PostalCode,
+	}
+	org.SignCAPrivateKey, org.SignCACertificate, err = certificate.NewCA(pkixName)
 	if err != nil {
 		returnInternalServerError(ctx, "New sign CA error: %v", err)
 		return
 	}
-	tlsca, err := types.NewCA(org, types.TLSCAType)
+	org.TLSCAPrivateKey, org.TLSCACertificate, err = certificate.NewCA(pkixName)
 	if err != nil {
 		returnInternalServerError(ctx, "New TLS CA error: %v", err)
 		return
@@ -50,32 +80,10 @@ func CreateOrganization(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.CreateCA((*db.CA)(signca)); err != nil {
-		var exist *db.ErrCAExist
-		if errors.As(err, &exist) {
-			ctx.JSON(http.StatusBadRequest, apierrors.NewErrors(apierrors.DataAlreadyExists))
-			return
-		}
-
-		returnInternalServerError(ctx, "Create sign CA error: %v", err)
-		return
-	}
-
-	if err := db.CreateCA((*db.CA)(tlsca)); err != nil {
-		var exist *db.ErrCAExist
-		if errors.As(err, &exist) {
-			ctx.JSON(http.StatusBadRequest, apierrors.NewErrors(apierrors.DataAlreadyExists))
-			return
-		}
-
-		returnInternalServerError(ctx, "Create TLS CA error: %v", err)
-		return
-	}
-
 	ctx.JSON(http.StatusOK, org)
 }
 
-func GetOrganizationByID(ctx *gin.Context) {
+func (o *Organization) GetOrganizationByID(ctx *gin.Context) {
 	id := ctx.Param("organizationID")
 
 	org, err := db.QueryOrganizationByOrgID(id)
